@@ -1,0 +1,681 @@
+from openpyxl import load_workbook
+from datetime import datetime
+import os, csv, random, pandas as pd, matplotlib.pyplot as plt ,sys
+from dateutil import parser
+import tkinter as tk
+from tkinter import *
+from tkinter import messagebox
+from BankFunction import *
+
+try:
+    with open("MNMBankDatabase.xlsx", "r") as f:
+        pass
+except FileNotFoundError:
+	messagebox.showinfo("Message Alert!", "Account Database Not Found.")
+	sys.exit()
+
+accnumber = 0
+#----------------------------------------------------------------------------------------------------------------------------------------------------------------
+def login_return(master):
+	master.destroy()
+	home_pg()
+
+def deposit_enter(master, amount, note):
+    addTransactionDetails(accnumber, int(amount), note)
+    messagebox.showinfo("Message Alert!", "Amount Successfully Deposited.")
+    login_return(master)
+
+def deposit(master):
+    master.destroy()
+    dep=tk.Tk()
+    dep.geometry("800x500")
+    dep.title('MNM Bank')
+    dep.configure(background='mintcream')
+    dep.maxsize(800,500)
+    fr1=tk.Frame(dep)
+    fr1.pack(side="top")
+    l_title=tk.Message(text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+    head=tk.Message(dep,text='Deposit',width=200,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+    font_style = ("Helvetica","20")
+    l1=tk.Label(dep,text="Enter Amount :",relief='flat',bg="mintcream",font=font_style)
+    e1=tk.Entry(dep, font=font_style)
+    l2=tk.Label(dep,text="Enter Details :",relief='flat',bg="mintcream",font=font_style)
+    e2=tk.Entry(dep, font=font_style)
+    b1=tk.Button(dep,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:login_return(dep))
+    b2=tk.Button(dep,text='Enter',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:deposit_enter(dep,e1.get().strip(),e2.get().strip()))
+    l1.place(x=160,y=180)
+    e1.place(x=350,y=180)
+    l2.place(x=160,y=230)
+    e2.place(x=350,y=230)
+    b1.place(x=10,y=450)
+    b2.place(x=660,y=450)
+    dep.mainloop()
+
+def withdraw_enter(master, amount, note):
+    if(checkSufficientBalance(accnumber, int(amount))):
+        addTransactionDetails(accnumber, -(int(amount)), note)
+        messagebox.showinfo("Message Alert!", "Amount Successfully Withdrawn.")
+        login_return(master)
+    else:
+        messagebox.showinfo("Message Alert!", "Insufficient Funds.")
+
+def withdrawal(master):
+    master.destroy()
+    wd=tk.Tk()
+    wd.geometry("800x500")
+    wd.title('MNM Bank')
+    wd.configure(background='mintcream')
+    wd.maxsize(800,500)
+    fr1=tk.Frame(wd)
+    fr1.pack(side="top")
+    l_title=tk.Message(text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+    head=tk.Message(wd,text='Withdrawal',width=200,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+    font_style = ("Helvetica","20")
+    l1=tk.Label(wd,text="Enter amount :",relief='flat',bg="mintcream",font=font_style)
+    e1=tk.Entry(wd, font=font_style)
+    l2=tk.Label(wd,text="Enter Details :",relief='flat',bg="mintcream",font=font_style)
+    e2=tk.Entry(wd, font=font_style )
+    b1=tk.Button(wd,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:login_return(wd))
+    b2=tk.Button(wd,text='Enter',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:withdraw_enter(wd, e1.get().strip(), e2.get().strip()))
+    l1.place(x=160,y=180)
+    e1.place(x=350,y=180)
+    l2.place(x=160,y=230)
+    e2.place(x=350,y=230)
+    b1.place(x=10,y=450)
+    b2.place(x=660,y=450)
+    wd.mainloop()
+
+#fetchBalance(accnumber)
+def transaction_history(master):
+    master.destroy()
+    mastr_wdow = tk.Tk()
+    mastr_wdow.geometry("900x500")
+    mastr_wdow.title('MNM Bank login')
+    mastr_wdow.configure(background='mintcream')
+    mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","40","bold"))
+    l_title.grid(row=1,column=1,columnspan=5)
+
+    head=tk.Message(mainframe,text='Transaction details',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.grid(row=2,column=1,columnspan=5)
+    nest_lst = viewTransactionDetails(accnumber)
+    font_style = ("Helvetica","12")
+    date = tk.Message(mainframe,text='Date-Time',width=500,bg="mintcream",relief="raised",font=font_style)
+    note = tk.Message(mainframe,text='Note',width=500,bg="mintcream",relief="raised", font=font_style)
+    credit = tk.Message(mainframe,text='Credit',width=500,bg="mintcream",relief="raised", font=font_style)
+    debit = tk.Message(mainframe,text='Debit',width=500,bg="mintcream",relief="raised", font=font_style)
+    balance = tk.Message(mainframe,text='Balance',width=500,bg="mintcream",relief="raised", font=font_style)
+    balancetext = f"Current Balance: Rs. {nest_lst[-1][-1]}"
+    bal_text = tk.Message(mainframe,text=balancetext,width=500,bg="mintcream",relief="raised", font=font_style)
+    bal_text.grid(row=3, column=1, columnspan=5)
+    date.grid(row=4, column=1)
+    note.grid(row=4, column=2)
+    credit.grid(row=4, column=3)
+    debit.grid(row=4, column=4)
+    balance.grid(row=4, column=5)
+    last_data = 5
+    for x in nest_lst:
+        d = tk.Message(mainframe,text=x[0],width=500,bg="mintcream",relief=FLAT,font=font_style)
+        n = tk.Message(mainframe,text=x[1],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        cr = tk.Message(mainframe,text=x[2],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        db = tk.Message(mainframe,text=x[3],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        bal = tk.Message(mainframe,text=x[4],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        d.grid(row=last_data, column=1)
+        n.grid(row=last_data, column=2)
+        cr.grid(row=last_data, column=3)
+        db.grid(row=last_data, column=4)
+        bal.grid(row=last_data, column=5)
+        last_data+=1
+
+
+    b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:login_return(mastr_wdow))
+    b2=tk.Button(mastr_wdow,text='View Graph',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:viewTransactionGraph(accnumber))
+    b1.place(x=10,y=760)
+    b2.place(x=1405,y=760)
+    mastr_wdow.mainloop()
+
+
+def take_loan_enter(master, type, time_period, amount):
+    generated_loanno = takeLoan(accnumber, type, int(time_period), int(amount))
+    messagebox.showinfo("Message Alert!", f"Loan granted.\nYour Loan No. is: {generated_loanno}")
+    loan_menu(master)
+
+def take_loan(master):
+    master.destroy()
+    loan=tk.Tk()
+    loan.geometry("800x500")
+    loan.title('MNM Bank')
+    loan.configure(background='mintcream')
+    loan.maxsize(800,500)
+    fr1=tk.Frame(loan)
+    fr1.pack(side="top")
+    l_title=tk.Message(text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+    head=tk.Message(loan,text='Loan Application',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+    font_style = ("Helvetica","20")
+    l1=tk.Label(loan,text="Loan Amount:",relief="flat",bg="mintcream",font=font_style)
+    e1=tk.Entry(loan,font=font_style )
+    l2=tk.Label(loan,text="Loan type :",relief="flat",bg="mintcream",font=font_style)
+    e2=tk.Entry(loan,font=font_style)
+    l3=tk.Label(loan,text="Time period :",relief="flat",bg="mintcream",font=font_style)
+    e3=tk.Entry(loan,font=font_style )
+    interest=tk.Message(loan,text='Interest : 8% SI',width=200,bg="mintcream",font=font_style)
+    b1=tk.Button(loan,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:loan_menu(loan))
+    b2=tk.Button(loan,text='Enter',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:take_loan_enter(loan, e2.get().strip(), e3.get().strip(), e1.get().strip() ))
+    l1.place(x=130,y=180)
+    e1.place(x=320,y=180)
+    l2.place(x=130,y=230)
+    e2.place(x=320,y=230)
+    l3.place(x=130,y=280)
+    e3.place(x=320,y=280)
+    interest.place(x=130,y=320)
+    b1.place(x=10,y=450)
+    b2.place(x=660,y=450)
+    loan.mainloop()
+
+
+def create_fd_enter(master, maturity, amount):
+	if (checkSufficientBalance(accnumber, int(amount))):
+		generated_fdno = createFD(accnumber, int(maturity), int(amount))
+		messagebox.showinfo("Message Alert!", f"Your FD is Created. \nYour FD No. is: {generated_fdno}.")
+		fd_menu(master)
+	else:
+		messagebox.showinfo("Message Alert!", "Insufficient Funds.")
+
+
+def fds(master):
+    master.destroy()
+    fd=tk.Tk()
+    fd.geometry("800x500")
+    fd.title('MNM Bank')
+    fd.configure(background='mintcream')
+    fd.maxsize(800,500)
+    fr1=tk.Frame(fd)
+    fr1.pack(side="top")
+    l_title=tk.Message(text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+    head=tk.Message(fd,text='Fixed Deposit Application',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+    font_style = ("Helvetica","20")
+    l1=tk.Label(fd,text="Enter Amount :",relief="flat",font=font_style,bg="mintcream")
+    e1=tk.Entry(fd,font=font_style )
+    l3=tk.Label(fd,text="Maturity period :",relief="flat",font=font_style,bg="mintcream")
+    e3=tk.Entry(fd,font=font_style )
+    interest=tk.Message(fd,text='Interest : 6 %  SI',width=300,bg="mintcream",font=font_style)
+    b1=tk.Button(fd,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:fd_menu(fd))
+    b2=tk.Button(fd,text='Confirm',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:create_fd_enter(fd, e3.get().strip(), e1.get().strip() ))
+
+    l1.place(x=130,y=180)
+    e1.place(x=330,y=180)
+    l3.place(x=130,y=250)
+    e3.place(x=330,y=250)
+    interest.place(x=130,y=320)
+    b1.place(x=10,y=450)
+    b2.place(x=660,y=450)
+    fd.mainloop()
+
+def loan_history(master):
+    master.destroy()
+    mastr_wdow = tk.Tk()
+    mastr_wdow.geometry("950x500")
+    mastr_wdow.title('MNM Bank login')
+    mastr_wdow.configure(background='mintcream')
+    #mastr_wdow.maxsize(950,500)
+
+    mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","40","bold"))
+    l_title.grid(row=1,column=1,columnspan=6)
+
+    head=tk.Message(mainframe,text='Loan details',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.grid(row=2,column=1,columnspan=6)
+    nest_lst = viewLoanDetails(accnumber)
+    font_style = ("Helvetica","12")
+    lono = tk.Message(mainframe,text='Loan No.',width=500,bg="mintcream",relief="raised",font=font_style)
+    ap = tk.Message(mainframe,text='Loan Type',width=500,bg="mintcream",relief="raised", font=font_style)
+    ar = tk.Message(mainframe,text='Amount Paid',width=500,bg="mintcream",relief="raised", font=font_style)
+    tp = tk.Message(mainframe,text='Amount Remaining',width=500,bg="mintcream",relief="raised", font=font_style)
+    la = tk.Message(mainframe,text='Time Period',width=500,bg="mintcream",relief="raised", font=font_style)
+    lona = tk.Message(mainframe,text='Loan Amount',width=500,bg="mintcream",relief="raised", font=font_style)
+    lono.grid(row=3, column=1)
+    ap.grid(row=3, column=2)
+    ar.grid(row=3, column=3)
+    tp.grid(row=3, column=4)
+    la.grid(row=3, column=5)
+    lona.grid(row=3,column=6)
+    last_data = 4
+    for x in nest_lst:
+        a = tk.Message(mainframe,text=x[0],width=500,bg="mintcream",relief=FLAT,font=font_style)
+        b = tk.Message(mainframe,text=x[1],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        c = tk.Message(mainframe,text=x[2],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        d = tk.Message(mainframe,text=x[3],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        e = tk.Message(mainframe,text=x[4],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        f = tk.Message(mainframe,text=x[5],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        a.grid(row=last_data, column=1)
+        b.grid(row=last_data, column=2)
+        c.grid(row=last_data, column=3)
+        d.grid(row=last_data, column=4)
+        e.grid(row=last_data, column=5)
+        f.grid(row=last_data, column=6)
+        last_data+=1
+    b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:loan_menu(mastr_wdow))
+    b1.place(x=10,y=760)
+    mastr_wdow.mainloop()
+
+
+def fd_history(master):#argument(accno)
+    master.destroy()
+    mastr_wdow = tk.Tk()
+    mastr_wdow.geometry("800x500")
+    mastr_wdow.title('MNM Bank login')
+    mastr_wdow.configure(background='mintcream')
+
+    mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","40","bold"))
+    l_title.grid(row=1,column=1,columnspan=5)
+
+    head=tk.Message(mainframe,text='FD details',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.grid(row=2,column=1,columnspan=5)
+
+    font_style = ("Helvetica","12")
+    nest_lst = viewFDDetails(accnumber)
+    fdno = tk.Message(mainframe,text='FD No.',width=500,bg="mintcream",relief="raised",font=font_style)
+    mp = tk.Message(mainframe,text='Maturity Period',width=500,bg="mintcream",relief="raised", font=font_style)
+    ir = tk.Message(mainframe,text='Interest Rate',width=500,bg="mintcream",relief="raised", font=font_style)
+    fd = tk.Message(mainframe,text='FD Amount',width=500,bg="mintcream",relief="raised", font=font_style)
+    am = tk.Message(mainframe,text='Amount at Maturity',width=500,bg="mintcream",relief="raised", font=font_style)
+    fdno.grid(row=3, column=1)
+    mp.grid(row=3, column=2)
+    ir.grid(row=3, column=3)
+    fd.grid(row=3, column=4)
+    am.grid(row=3, column=5)
+    last_data = 4
+    for x in nest_lst:
+        a = tk.Message(mainframe,text=x[0],width=500,bg="mintcream",relief=FLAT,font=font_style)
+        b = tk.Message(mainframe,text=x[1],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        c = tk.Message(mainframe,text=x[2],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        d = tk.Message(mainframe,text=x[3],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        e = tk.Message(mainframe,text=x[4],width=500,bg="mintcream",relief=FLAT, font=font_style)
+        a.grid(row=last_data, column=1)
+        b.grid(row=last_data, column=2)
+        c.grid(row=last_data, column=3)
+        d.grid(row=last_data, column=4)
+        e.grid(row=last_data, column=5)
+        last_data+=1
+    b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:fd_menu(mastr_wdow))
+    b1.place(x=10,y=760)
+    mastr_wdow.mainloop()
+
+
+def payloan_enter(master,loanno,amount):
+	remaining_loan_amt = payLoan(accnumber, loanno, int(amount))
+	if(remaining_loan_amt <= 0):
+		messagebox.showinfo("Message Alert!", f"Loan No.: {loanno} has been paid off.")
+		loan_menu(master)
+	else:
+	    messagebox.showinfo("Message Alert!", f"Loan Installment Paid.\nLoan Amount Remaining: {remaining_loan_amt}.")
+	    loan_menu(master)
+
+def payback_loan(master):
+    master.destroy()
+    mastr_wdow = tk.Tk()
+    mastr_wdow.geometry("800x500")
+    mastr_wdow.title('MNM Bank login')
+    mastr_wdow.configure(background='mintcream')
+    mastr_wdow.maxsize(800,500)
+
+    mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+
+    head=tk.Message(mainframe,text='Loan Details',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+
+    font_style = ("Helvetica","15")
+    l1=tk.Label(mastr_wdow,text="Loan No:",relief=FLAT,bg="mintcream",font=font_style)
+    e1=tk.Entry(mastr_wdow, font=font_style)
+    l3=tk.Label(mastr_wdow,text="Enter Amount to pay:",relief=FLAT,bg="mintcream",font=font_style)
+    e3=tk.Entry(mastr_wdow, font=font_style)
+    b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:loan_menu(mastr_wdow))
+    b2=tk.Button(mastr_wdow,text='Enter',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:payloan_enter(mastr_wdow, e1.get().strip(), e3.get().strip() ))
+    l1.place(x=250,y=230)
+    e1.place(x=335,y=230)
+    l3.place(x=140,y=310)
+    e3.place(x=335,y=310)
+    b1.place(x=10,y=450)
+    b2.place(x=680,y=450)
+    mastr_wdow.mainloop()
+
+def loan_menu(master):
+    master.destroy()
+    mastr_wdow = tk.Tk()
+    mastr_wdow.geometry("800x500")
+    mastr_wdow.title('MNM Bank login')
+    mastr_wdow.configure(background='mintcream')
+    mastr_wdow.maxsize(800,500)
+
+    mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+
+    head=tk.Message(mainframe,text='Loan Menu',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+
+    font_style = ("Helvetica","15")
+    bt1=tk.Button(mastr_wdow,text='Take a Loan',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:take_loan(mastr_wdow))
+    bt2=tk.Button(mastr_wdow,text='Payback Loan',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:payback_loan(mastr_wdow))
+    bt3=tk.Button(mastr_wdow,text='View Loan Details',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:loan_history(mastr_wdow))
+    b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:login_return(mastr_wdow))
+    bt1.place(x=280,y=180)
+    bt2.place(x=280,y=250)
+    bt3.place(x=280,y=320)
+    b1.place(x=10,y=450)
+    mastr_wdow.mainloop()
+
+def break_fd_enter(master, fdno):
+	if(checkFD(accnumber, fdno)):
+		breakFD(accnumber, fdno)
+		messagebox.showinfo("Message Alert!","FD broken")
+		fd_menu(master)
+	else:
+		messagebox.showinfo("Message Alert!","No Such FD")
+
+def break_fd(master):
+	master.destroy()
+	mastr_wdow = tk.Tk()
+	mastr_wdow.geometry("800x500")
+	mastr_wdow.title('MNM Bank login')
+	mastr_wdow.configure(background='mintcream')
+	mastr_wdow.maxsize(800,500)
+
+	mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+	mainframe.pack(side="top")
+	l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+	l_title.config(font=("Courier","50","bold"))
+	l_title.pack(side="top")
+	font_style = ("Helvetica","15")
+
+	head=tk.Message(mainframe,text='Break Existing FD',width=500,bg="mintcream")
+	head.config(font=("Courier","25","bold"))
+	head.pack(side="top")
+
+	l1=tk.Label(mastr_wdow,text="FD No:",relief=FLAT,bg="mintcream",font=font_style)
+	e1=tk.Entry(mastr_wdow, font=font_style)
+	b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:fd_menu(mastr_wdow))
+	b2=tk.Button(mastr_wdow,text='Enter',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:break_fd_enter(mastr_wdow, e1.get().strip()))
+	b1.place(x=10,y=450)
+	b2.place(x=660,y=450)
+	l1.place(x=250,y=230)
+	e1.place(x=335,y=230)
+	mastr_wdow.mainloop()
+
+def fd_menu(master):
+	master.destroy()
+	mastr_wdow = tk.Tk()
+	mastr_wdow.geometry("800x500")
+	mastr_wdow.title('MNM Bank login')
+	mastr_wdow.configure(background='mintcream')
+	mastr_wdow.maxsize(800,500)
+
+	mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+	mainframe.pack(side="top")
+	l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+	l_title.config(font=("Courier","50","bold"))
+	l_title.pack(side="top")
+
+	head=tk.Message(mainframe,text='FD Menu',width=500,bg="mintcream")
+	head.config(font=("Courier","25","bold"))
+	head.pack(side="top")
+
+	font_style = ("Helvetica","15")
+	l1=tk.Label(mastr_wdow,text="Name:",relief=FLAT,bg="mintcream",font=font_style)
+	bt1=tk.Button(mastr_wdow,text='Create FD',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:fds(mastr_wdow))
+	bt2=tk.Button(mastr_wdow,text='View FD Details',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:fd_history(mastr_wdow))
+	bt3=tk.Button(mastr_wdow,text='Break FD',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style, command=lambda: break_fd(mastr_wdow))
+	b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:login_return(mastr_wdow))
+	bt1.place(x=280,y=180)
+	bt2.place(x=280,y=250)
+	bt3.place(x=280,y=320)
+	b1.place(x=10,y=450)
+	mastr_wdow.mainloop()
+
+
+def print_personal_details(master):
+    master.destroy()
+    mastr_wdow = tk.Tk()
+    mastr_wdow.geometry("800x500")
+    mastr_wdow.title('MNM Bank login')
+    mastr_wdow.configure(background='mintcream')
+    mastr_wdow.maxsize(800,500)
+
+    mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","40","bold"))
+    l_title.pack(side="top")
+
+    head=tk.Message(mainframe,text='Personal Information',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+    info_lst = viewPersonalDetails(accnumber)
+    font_style = ("Helvetica","12")
+    l0=tk.Message(mastr_wdow,text=f'Accno: {info_lst[0]}',width=400,bg="mintcream",font=font_style)
+    l1=tk.Message(mastr_wdow,text=f'Name: {info_lst[1]}',width=400,bg="mintcream",font=font_style)
+    l2=tk.Message(mastr_wdow,text=f'DOB: {info_lst[2]}',width=400,bg="mintcream",font=font_style)
+    l3=tk.Message(mastr_wdow,text=f'Aadhar No: {info_lst[3]}',width=400,bg="mintcream",font=font_style)
+    l4=tk.Message(mastr_wdow,text=f'PAN No: {info_lst[4]}',width=400,bg="mintcream",font=font_style)
+    l5=tk.Message(mastr_wdow,text=f'Email: {info_lst[5]}',width=400,bg="mintcream",font=font_style)
+    l6=tk.Message(mastr_wdow,text=f'Contact: {info_lst[6]}',width=400,bg="mintcream",font=font_style)
+    l7=tk.Message(mastr_wdow,text=f'Address: {info_lst[7]}',width=400,bg="mintcream",font=font_style)
+    b1=tk.Button(mastr_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:login_return(mastr_wdow))
+    l0.place(x=270,y=130)
+    l1.place(x=277,y=170)
+    l2.place(x=269,y=210)
+    l3.place(x=256,y=250)
+    l4.place(x=239,y=290)
+    l5.place(x=252,y=330)
+    l6.place(x=237,y=370)
+    l7.place(x=252,y=410)
+    b1.place(x=10,y=460)
+    mastr_wdow.mainloop()
+
+
+def home_pg():
+    home=tk.Tk()
+    home.geometry("800x500")
+    home.title('MNM Bank')
+    home.configure(background='mintcream')
+    home.maxsize(800,500)
+    fr1=tk.Frame(home)
+    fr1.pack(side="top")
+    l_title=tk.Message(text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+    font_style = ("Helvetica","15")
+    b1=tk.Button(home,text='Deposit',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:deposit(home))
+    b2=tk.Button(home,text='Withdraw',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:withdrawal(home))
+    b3=tk.Button(home,text='Personal Details',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:print_personal_details(home))
+    b4=tk.Button(home,text='Passbook',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:transaction_history(home))
+    b5=tk.Button(home,text='Loans',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:loan_menu(home))
+    b6=tk.Button(home,text='Fixed deposit',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:fd_menu(home))
+    b7=tk.Button(home,text='Logout',relief='ridge',activebackground='deepskyblue3',height=2,width=10,bg='mediumspringgreen',font=font_style,command=lambda:home_return(home))
+
+    b1.place(x=100,y=130)
+    b2.place(x=490,y=130)
+    b3.place(x=100,y=205)
+    b4.place(x=490,y=205)
+    b5.place(x=100,y=280)
+    b6.place(x=490,y=280)
+    b7.place(x=10,y=425)
+    home.mainloop()
+
+def login_enter(master, user_accno, pwd):
+    global accnumber
+    if(checkLogin(user_accno, pwd)):
+        master.destroy()
+        accnumber = user_accno
+        home_pg()
+    else:
+        messagebox.showinfo("Message Alert!", "Invalid Account No. or Password.")
+
+def create_acc_enter(master, e1, e2, e5, e6, e8, e3, e4, e9, e7):
+    generated_acno = addAccount(e1, e2, e5, e6, e8, e3, e4, e9, e7)
+    messagebox.showinfo("Message Alert!", f"Account Successfully Created.\nYour Account No. is: {generated_acno}.")
+    home_return(master)
+
+def home_return(master):
+    global accnumber
+    master.destroy()
+    accnumber = 0
+    pg1()
+
+
+
+def login(master):
+
+    master.destroy()
+    login_wdow = tk.Tk()
+    login_wdow.geometry("800x500")
+    login_wdow.title('MNM Bank login')
+    login_wdow.configure(background='mintcream')
+    login_wdow.maxsize(800,500)
+
+    mainframe = tk.Frame(login_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+
+    head=tk.Message(mainframe,text='Login Details',width=400,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+
+    font_style = ("Helvetica","20")
+    l1=tk.Label(login_wdow,text="Account No:",relief=FLAT,bg="mintcream",font=font_style)
+    e1=tk.Entry(login_wdow, font=font_style)
+    l2=tk.Label(login_wdow,text="Password:",relief=FLAT,bg="mintcream",font=font_style)
+    e2=tk.Entry(login_wdow, font=font_style ,show="*")
+    b1=tk.Button(login_wdow,text='Return',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","15","bold"),command=lambda:home_return(login_wdow))
+    b2=tk.Button(login_wdow,text='Enter',relief='ridge',activebackground='deepskyblue3',height=1,width=10,bg='mediumspringgreen',font=("Courier","12","bold"),command=lambda:login_enter(login_wdow,e1.get(),e2.get()))
+    l1.place(x=160,y=180)
+    e1.place(x=325,y=180)
+    l2.place(x=185,y=230)
+    e2.place(x=325,y=230)
+    b1.place(x=10,y=450)
+    b2.place(x=680,y=450)
+    login_wdow.mainloop()
+
+def create_acc(master):
+    master.destroy()
+    mastr_wdow = tk.Tk()
+    mastr_wdow.geometry("800x550")
+    mastr_wdow.title('MNM Bank login')
+    mastr_wdow.configure(background='mintcream')
+    mastr_wdow.maxsize(800,550)
+
+    mainframe = tk.Frame(mastr_wdow,bg="mintcream")
+    mainframe.pack(side="top")
+    l_title=tk.Message(mainframe,text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Courier","50","bold"))
+    l_title.pack(side="top")
+
+    head=tk.Message(mainframe,text='Account creation details',width=500,bg="mintcream")
+    head.config(font=("Courier","25","bold"))
+    head.pack(side="top")
+
+    font_style = ("Helvetica","15")
+    l1=tk.Label(mastr_wdow,text="Name:",relief=FLAT,bg="mintcream",font=font_style)
+    e1=tk.Entry(mastr_wdow, font=font_style)
+    l2=tk.Label(mastr_wdow,text="DOB:",relief=FLAT,bg="mintcream",font=font_style)
+    e2=tk.Entry(mastr_wdow, font=font_style)
+    e2.insert(0,"DD/MM/YYYY")
+
+    l3=tk.Label(mastr_wdow,text="Email:",relief=FLAT,bg="mintcream",font=font_style)
+    e3=tk.Entry(mastr_wdow, font=font_style)
+    l4=tk.Label(mastr_wdow,text="Contact:",relief=FLAT,bg="mintcream",font=font_style)
+    e4=tk.Entry(mastr_wdow, font=font_style)
+
+    l5=tk.Label(mastr_wdow,text="Aadhar No:",relief=FLAT,bg="mintcream",font=font_style)
+    e5=tk.Entry(mastr_wdow, font=font_style)
+    l6=tk.Label(mastr_wdow,text="PAN No:",relief=FLAT,bg="mintcream",font=font_style)
+    e6=tk.Entry(mastr_wdow, font=font_style)
+
+    l7=tk.Label(mastr_wdow,text="Initial Balance:",relief=FLAT,bg="mintcream",font=font_style)
+    e7=tk.Entry(mastr_wdow, font=font_style)
+    l8=tk.Label(mastr_wdow,text="Address:",relief=FLAT,bg="mintcream",font=font_style)
+    e8=tk.Entry(mastr_wdow, font=font_style)
+
+    l9=tk.Label(mastr_wdow, text="Password:", relief=FLAT, bg="mintcream", font=font_style)
+    e9=tk.Entry(mastr_wdow, font=font_style, show="*")
+    b1=tk.Button(mastr_wdow, text='Return', relief='ridge', activebackground='deepskyblue3',height=1,width=10, bg='mediumspringgreen', font=("Courier","12","bold"), command=lambda:home_return(mastr_wdow))
+    b2=tk.Button(mastr_wdow, text='Create Account', relief='ridge', activebackground='deepskyblue3',height=1,width=15, bg='mediumspringgreen', font=("Courier","12","bold"), command=lambda:create_acc_enter(mastr_wdow,e1.get().strip(), e2.get().strip(), e5.get().strip(), e6.get().strip(), e8.get().strip(), e3.get().strip(), e4.get().strip(), e9.get().strip(), e7.get().strip()))
+    l1.place(x=270,y=130)
+    e1.place(x=335,y=130)
+    l2.place(x=280,y=170)
+    e2.place(x=335,y=170)
+    l3.place(x=277,y=210)
+    e3.place(x=335,y=210)
+    l4.place(x=250,y=250)
+    e4.place(x=335,y=250)
+    l5.place(x=227,y=290)
+    e5.place(x=335,y=290)
+    l6.place(x=250,y=330)
+    e6.place(x=335,y=330)
+    l7.place(x=200,y=370)
+    e7.place(x=335,y=370)
+    l8.place(x=250,y=410)
+    e8.place(x=335,y=410)
+    l9.place(x=235,y=450)
+    e9.place(x=335,y=450)
+    b1.place(x=10,y=510)
+    b2.place(x=630,y=510)
+    mastr_wdow.mainloop()
+
+def pg1():
+    intro=tk.Tk()
+    intro.geometry("800x500")
+    intro.title('MNM Bank')
+    intro.configure(background='mintcream')
+    intro.maxsize(800,500)
+    fr1=tk.Frame(intro)
+    fr1.pack(side="top")
+    l_title=tk.Message(text="MNM BANK",relief="raised",width=2000,padx=600,pady=0,fg="azure",bg="brown1",justify="center",anchor="center")
+    l_title.config(font=("Helvetica Neue","50","bold"))
+    l_title.pack(side="top")
+    font_style = ("Helvetica","15")
+    b1=tk.Button(intro,text='Login',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda: login(intro))
+    b2=tk.Button(intro,text='Create Account',relief='ridge',activebackground='deepskyblue3',height=2,width=20,bg='coral',font=font_style,command=lambda:create_acc(intro))
+    b7=tk.Button(intro,text='EXIT',relief='ridge',activebackground='deepskyblue3',height=2,width=10,bg='mediumspringgreen',font=font_style,command=intro.destroy)
+    b1.place(x=280,y=180)
+    b2.place(x=280,y=250)
+    b7.place(x=10,y=425)
+    intro.mainloop()
+pg1()
